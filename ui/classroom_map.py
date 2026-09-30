@@ -1,69 +1,82 @@
+# ui/classroom_map.py
 import customtkinter as ctk
 from config import COLORS, FONT_MAIN
 
+
 class ClassroomMapWidget(ctk.CTkScrollableFrame):
+    """Визуальная схема класса: коричневые парты, 2 места, статусы."""
 
-    def __init__(self, parent):
-        super().__init__(parent, fg_color=COLORS["bg"])
+    def __init__(self, parent, **kwargs):
+        # Устанавливаем белый фон по умолчанию, если не передан другой
+        if 'fg_color' not in kwargs:
+            kwargs['fg_color'] = COLORS["bg"]
+            
+        super().__init__(parent, **kwargs)
+        
+        # Параметры рассадки
+        self.total_rows = 5      
+        self.desks_per_row = 3   
+        
+        self._build_layout()
 
-        self.rows = 3
-        self.seats_per_row = 4
+    def _build_layout(self):
+        """Создает сетку: Парты слева, Подписи рядов справа."""
+        
+        for row_idx in range(1, self.total_rows + 1):
+            # Контейнер для парт ряда
+            desks_frame = ctk.CTkFrame(self, fg_color="transparent")
+            desks_frame.grid(row=row_idx, column=0, padx=(20, 10), pady=15, sticky="w")
+            
+            for desk_idx in range(1, self.desks_per_row + 1):
+                desk_widget = self._create_desk(row_idx, desk_idx)
+                desk_widget.pack(side="left", padx=15)
 
-        self.seat_buttons = {}
-
-        self._render_headers()
-
-        self._render_seats()
-
-    def _render_headers(self):
-        for i in range(1, self.rows + 1):
-            label = ctk.CTkLabel(
+            # Подпись ряда
+            row_label = ctk.CTkLabel(
                 self, 
-                text=f"{i} ряд", 
-                font=FONT_MAIN,
+                text=f"{row_idx} ряд", 
+                font=(*FONT_MAIN[0], 16, "bold"),
+                text_color=COLORS["text"],
                 width=60,
-                anchor="e"
+                anchor="w"
             )
-            label.grid(row=i, column=0, padx=(0, 10), pady=10, sticky="e")
+            row_label.grid(row=row_idx, column=1, padx=(10, 40), pady=15, sticky="e")
 
-    def _render_seats(self):
-        for row in range(1, self.rows + 1):
-            for col in range(1, self.seats_per_row + 1):
-                seat_id = f"{row}-{col}"
+    def _create_desk(self, row: int, col: int) -> ctk.CTkFrame:
+        """Рисует пустую парту (коричневый прямоугольник)."""
+        
+        # Коричневая основа парты
+        desk = ctk.CTkFrame(self, fg_color="#8B5A2B", width=140, height=70)
+        desk.pack_propagate(False) 
+        
+        # Пока не добавляем сюда индикаторы статусов (черные/белые квадраты),
+        # так как ты просил "пустые места".
+        # Позже мы добавим метод update_desk_status(row, col, status), 
+        # который будет динамически добавлять эти квадраты.
+        
+        # Добавим легкую рамку или эффект при наведении, чтобы было видно, что это интерактивный элемент
+        desk.bind("<Enter>", lambda e, d=desk: d.configure(fg_color="#9C6B3C"))
+        desk.bind("<Leave>", lambda e, d=desk: d.configure(fg_color="#8B5A2B"))
+        
+        return desk
 
-                status = self._get_mock_status(row, col)
-                color = self._get_seat_color(status)
+    def _create_seat_indicator(self, parent, is_present: bool) -> ctk.CTkFrame:
+        """Рисует маленький квадратик статуса (Черный=Присутствует, Белый=Отсутствует)."""
+        color = "#000000" if is_present else "#FFFFFF"
+        border = "#333333" if not is_present else "#000000"
 
-                btn = ctk.CTkButton(
-                    self,
-                    text="",
-                    width=80,
-                    height=50,
-                    fg_color=color,
-                    hover_color=self._get_hover_color(color),
-                    corner_radius=8,
-                    command=lambda sid=seat_id: self._on_seat_click(sid)
-                )
-                btn.grid(row=row, column=col, padx=5, pady=10)
-                self.seat_buttons[seat_id] = btn
-    def _get_mock_status(self, row: int, col: int) -> str:
-        if (row + col) % 3 == 0:
-            return "absent"
-        elif (row + col) % 5 == 0:
-            return "pending"
-        return "present"
+        indicator = ctk.CTkFrame(
+            parent,
+            fg_color=color,
+            border_color=border,
+            border_width=2,
+            width=24,
+            height=24,
+        )
+        return indicator
 
-    def _get_seat_color(self, status: str) -> str:
-        colors = {
-            "present": COLORS["accent"],   
-            "absent": COLORS["danger"],    
-            "pending": "#FFC107",         
-            "free": COLORS["secondary"]  
-        }
-        return colors.get(status, COLORS["secondary"])
-
-    def _get_haver_color(self, base_color: str) -> str:
-        return base_color[:6] + "CC" if len(base_color) == 7 else base_color
-
-    def _on_seat_click(self, seat_id: str):
-        print(f"Клик по месту: {seat_id}")
+    def _get_mock_status(self, row: int, col: int, seat_num: int) -> bool:
+        """Генерирует случайный статус для демо (True = присутствует)."""
+        # Простая логика для разнообразия цветов
+        val = (row * 10 + col * 3 + seat_num) % 4
+        return val != 0  # 75% присутствуют, 25% отсутствуют

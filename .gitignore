@@ -2,3 +2,4 @@ __pycache__
 venv
 .рус
 ui/__pycache__
+data

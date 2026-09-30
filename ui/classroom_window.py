@@ -82,15 +82,14 @@ class ClassroomWindowManager:
 
     def _update_content(self):
         """Безопасно меняет виджет внутри контейнера."""
-        # Удаляем всё старое
         for widget in self.content_container.winfo_children():
             widget.destroy()
             
-        # Добавляем новое
         if self.current_mode == "map":
             ClassroomMapWidget(self.content_container).pack(fill="both", expand=True)
         else:
-            AttendanceListWidget(self.content_container).pack(fill="both", expand=True)
+            # Передаем group_id=1 для группы 6А
+            AttendanceListWidget(self.content_container, group_id=1).pack(fill="both", expand=True)
 
     def toggle_mode(self):
         """Переключает режим и обновляет интерфейс."""
